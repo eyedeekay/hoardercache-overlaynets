@@ -1,26 +1,19 @@
 
-export overlaynets-device-id = $(shell overlaynets -device-id 2>/dev/null)
-export overlaynets-apikey = $(shell grep apikey $(HOME)/.config/overlaynets/config.xml | sed 's|apikey||g' | tr -d '</>' 2>/dev/null)
+#export overlaynets-device-id = $(shell overlaynets -device-id 2>/dev/null)
+#export overlaynets-apikey = $(shell grep apikey $(HOME)/.config/overlaynets/config.xml | sed 's|apikey||g' | tr -d '</>' 2>/dev/null)
 
-export docker-overlaynets-device-id = $(shell docker exec hoardercache-overlaynets overlaynets -device-id)
-export docker-overlaynets-apikey = $(shell docker exec hoardercache-overlaynets grep apikey $(HOME)/.config/overlaynets/config.xml | sed 's|apikey||g' | tr -d '</>' )
+#export docker-overlaynets-device-id = $(shell docker exec hoardercache-overlaynets overlaynets -device-id)
+#export docker-overlaynets-apikey = $(shell docker exec hoardercache-overlaynets grep apikey $(HOME)/.config/overlaynets/config.xml | sed 's|apikey||g' | tr -d '</>' )
 
 export import_directory ?= $(working_directory)/hoardercache-overlaynets/import
 export settings_directory ?= $(working_directory)/hoardercache-overlaynets/overlaynets
+export i2pd_dat ?= $(working_directory)/hoardercache-overlaynets/i2pd_dat
 
 define I2P_TUNNELS_CONF
 [aptcacher]
 type = http
-host = 127.0.0.1
+host = apthoarder-site
 port = 3142
-keys = aptcacher.dat
-inbound.length = 1
-outbound.length = 1
-
-[aptclient]
-type = client
-host = 127.0.0.1
-port = 7142
 keys = aptcacher.dat
 inbound.length = 1
 outbound.length = 1
@@ -35,10 +28,14 @@ addon-overlaynets-build:
 	docker build --force-rm -t hoardercache-overlaynets -f hoardercache-overlaynets/Dockerfile.i2p .
 
 addon-overlaynets-run-daemon:
-	docker run \
-		-h apthoarder-overlaynets \
-		-p 3142 \
-		-p 7142 \
+	docker run -d \
+		--network apthoarder \
+		--network-alias apthoarder-host \
+		--hostname apthoarder-host \
+		--link apthoarder-site \
+		-p 4567 \
+		-p 127.0.0.1:7069:7069 \
+		--volume $(i2pd_dat):/var/lib/i2pd:rw \
 		--restart=always \
 		--name hoardercache-overlaynets \
 		-t hoardercache-overlaynets
